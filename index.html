@@ -1,0 +1,684 @@
+<title>在庫アラートボード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700&family=Noto+Sans+JP:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#F4F6F6;
+    --surface:#FFFFFF;
+    --surface-2:#EAEEEE;
+    --line:#D5DCDC;
+    --line-strong:#B9C4C4;
+    --ink:#131A1C;
+    --ink-2:#566462;
+    --ink-3:#7C8A88;
+    --accent:#1E5F6B;
+    --accent-ink:#FFFFFF;
+    --accent-soft:#DCEBEC;
+    --crit:#A82A1C;
+    --crit-soft:#F8E3E0;
+    --warn:#8A5C06;
+    --warn-soft:#F7EBD4;
+    --ok:#2F6B4B;
+    --ok-soft:#E0EDE5;
+    --shadow:0 1px 2px rgba(19,26,28,.06), 0 8px 24px -16px rgba(19,26,28,.28);
+    --radius:10px;
+    --display:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+    --body:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+    --mono:"IBM Plex Mono","SFMono-Regular",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#101617;
+      --surface:#171F21;
+      --surface-2:#1E2A2C;
+      --line:#2C393B;
+      --line-strong:#3D4C4E;
+      --ink:#E8EDEC;
+      --ink-2:#A2B2B0;
+      --ink-3:#7E8F8D;
+      --accent:#5FBECB;
+      --accent-ink:#0B1416;
+      --accent-soft:#183237;
+      --crit:#F0917F;
+      --crit-soft:#3B1D18;
+      --warn:#E5B75C;
+      --warn-soft:#382C12;
+      --ok:#7FC79C;
+      --ok-soft:#173021;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#101617;
+    --surface:#171F21;
+    --surface-2:#1E2A2C;
+    --line:#2C393B;
+    --line-strong:#3D4C4E;
+    --ink:#E8EDEC;
+    --ink-2:#A2B2B0;
+    --ink-3:#7E8F8D;
+    --accent:#5FBECB;
+    --accent-ink:#0B1416;
+    --accent-soft:#183237;
+    --crit:#F0917F;
+    --crit-soft:#3B1D18;
+    --warn:#E5B75C;
+    --warn-soft:#382C12;
+    --ok:#7FC79C;
+    --ok-soft:#173021;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.9);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--body);
+    font-size:15px;
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 64px;display:flex;flex-direction:column;gap:22px}
+
+  /* ---- header ---- */
+  .masthead{display:flex;flex-direction:column;gap:10px}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-3);display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .eyebrow .tag{
+    border:1px solid var(--line-strong);border-radius:999px;padding:1px 9px;color:var(--ink-2);
+  }
+  h1{
+    font-family:var(--display);font-weight:700;font-size:clamp(26px,3.4vw,36px);
+    line-height:1.25;margin:0;letter-spacing:.01em;text-wrap:balance;
+  }
+  .lede{margin:0;color:var(--ink-2);max-width:62ch;font-size:14px}
+
+  /* ---- status strip ---- */
+  .strip{
+    display:flex;flex-wrap:wrap;align-items:stretch;gap:0;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .stat{
+    flex:1 1 150px;padding:12px 16px;display:flex;flex-direction:column;gap:2px;
+    border-right:1px solid var(--line);
+  }
+  .stat:last-child{border-right:0}
+  .stat .k{font-size:11px;letter-spacing:.08em;color:var(--ink-3);font-family:var(--mono)}
+  .stat .v{
+    font-family:var(--mono);font-weight:500;font-size:22px;line-height:1.2;
+    font-variant-numeric:tabular-nums;color:var(--ink);
+  }
+  .stat .v small{font-size:12px;color:var(--ink-3);margin-left:3px}
+  .stat.is-alert .v{color:var(--crit)}
+  .stat.is-alert{background:var(--crit-soft)}
+
+  /* ---- layout ---- */
+  .cols{display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
+  @media (min-width:1000px){
+    .cols{grid-template-columns:minmax(0,1fr) 320px;align-items:start}
+    .side{position:sticky;top:20px}
+  }
+
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+  .card-head{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding:13px 16px;border-bottom:1px solid var(--line);
+  }
+  .card-head h2{
+    font-family:var(--display);font-weight:700;font-size:15px;margin:0;letter-spacing:.02em;
+  }
+  .count{font-family:var(--mono);font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+  /* ---- toolbar ---- */
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .search{
+    flex:1 1 200px;min-width:160px;font:inherit;font-size:14px;color:var(--ink);
+    background:var(--bg);border:1px solid var(--line-strong);border-radius:8px;padding:7px 11px;
+  }
+  .search::placeholder{color:var(--ink-3)}
+  .chip{
+    font:inherit;font-size:13px;cursor:pointer;color:var(--ink-2);
+    background:var(--bg);border:1px solid var(--line-strong);border-radius:999px;padding:6px 13px;
+    display:inline-flex;align-items:center;gap:7px;transition:background .15s,color .15s,border-color .15s;
+  }
+  .chip:hover{border-color:var(--accent);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--crit-soft);border-color:var(--crit);color:var(--crit);font-weight:500}
+
+  /* ---- table ---- */
+  .table-scroll{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;min-width:660px}
+  thead th{
+    font-family:var(--mono);font-weight:500;font-size:10.5px;letter-spacing:.1em;
+    color:var(--ink-3);text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);
+    white-space:nowrap;background:var(--surface-2);
+  }
+  th.num,td.num{text-align:right}
+  tbody td{
+    padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle;
+  }
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr{transition:background .15s}
+  tbody tr:hover{background:var(--surface-2)}
+  tbody tr.low{background:var(--crit-soft)}
+  tbody tr.low:hover{background:var(--crit-soft);filter:brightness(.98)}
+  tbody tr.low td:first-child{box-shadow:inset 3px 0 0 var(--crit)}
+  tbody tr.near td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+
+  .pill{
+    display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+    font-family:var(--display);font-weight:500;font-size:11.5px;letter-spacing:.04em;
+    border-radius:999px;padding:2px 9px 3px;border:1px solid transparent;
+  }
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .pill.low{color:var(--crit);background:var(--crit-soft);border-color:var(--crit)}
+  .pill.near{color:var(--warn);background:var(--warn-soft);border-color:var(--warn)}
+  .pill.ok{color:var(--ok);background:var(--ok-soft);border-color:var(--ok)}
+
+  .name{font-weight:500;line-height:1.35}
+  .meta{
+    font-family:var(--mono);font-size:11px;color:var(--ink-3);
+    display:flex;gap:9px;flex-wrap:wrap;margin-top:2px;
+  }
+  .qty{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px;font-weight:500}
+  .qty .u{font-size:11px;color:var(--ink-3);margin-left:2px;font-weight:400}
+  .thr{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:13px}
+  .gap{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink-3)}
+  .gap.short{color:var(--crit);font-weight:500}
+  .date{font-family:var(--mono);font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  /* stock bar */
+  .bar{
+    position:relative;height:4px;border-radius:2px;background:var(--surface-2);
+    margin-top:6px;width:100%;max-width:110px;margin-left:auto;overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--ok);border-radius:2px}
+  tr.near .bar i{background:var(--warn)}
+  tr.low .bar i{background:var(--crit)}
+
+  .adj{display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle}
+  .adj button{
+    font:inherit;font-family:var(--mono);font-size:12px;line-height:1;cursor:pointer;
+    width:22px;height:22px;border-radius:6px;border:1px solid var(--line-strong);
+    background:var(--surface);color:var(--ink-2);display:grid;place-items:center;padding:0;
+  }
+  .adj button:hover{border-color:var(--accent);color:var(--accent)}
+
+  .empty{padding:34px 16px;text-align:center;color:var(--ink-3);font-size:14px}
+
+  /* ---- alert panel ---- */
+  .alertbox{padding:14px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:9px}
+  .alertbox p{margin:0;font-size:12.5px;color:var(--ink-2)}
+  textarea.alerttext{
+    width:100%;min-height:150px;resize:vertical;font-family:var(--mono);font-size:12px;line-height:1.65;
+    color:var(--ink);background:var(--bg);border:1px solid var(--line-strong);border-radius:8px;padding:11px 12px;
+  }
+  .row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+  /* ---- form ---- */
+  form{padding:14px 16px;display:flex;flex-direction:column;gap:13px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:12px;font-weight:500;color:var(--ink-2);letter-spacing:.02em}
+  .field label .opt{color:var(--ink-3);font-weight:400}
+  .field input,.field select{
+    font:inherit;font-size:14px;color:var(--ink);background:var(--bg);
+    border:1px solid var(--line-strong);border-radius:8px;padding:8px 11px;width:100%;
+  }
+  .field input[type="number"]{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .field .err{font-size:11.5px;color:var(--crit);min-height:0}
+  .field.invalid input{border-color:var(--crit)}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .hint{font-size:11.5px;color:var(--ink-3);margin:-4px 0 0}
+  button.primary{
+    font:inherit;font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.03em;
+    cursor:pointer;background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent);
+    border-radius:8px;padding:10px 14px;transition:filter .15s;
+  }
+  button.primary:hover{filter:brightness(1.08)}
+  button.ghost{
+    font:inherit;font-size:13px;cursor:pointer;background:transparent;color:var(--ink-2);
+    border:1px solid var(--line-strong);border-radius:8px;padding:7px 12px;transition:border-color .15s,color .15s;
+  }
+  button.ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+  .toast{
+    font-size:12.5px;color:var(--ok);background:var(--ok-soft);border:1px solid var(--ok);
+    border-radius:8px;padding:7px 11px;
+  }
+  .toast[hidden]{display:none !important}
+
+  footer.note{
+    font-size:12px;color:var(--ink-3);display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+    border-top:1px solid var(--line);padding-top:14px;
+  }
+  footer.note code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);padding:1px 6px;border-radius:4px}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;animation:none !important}
+  }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="eyebrow">
+      <span>Inventory Mock</span>
+      <span class="tag">サンプルデータ</span>
+      <span class="tag">フロントのみ / 保存なし</span>
+    </div>
+    <h1>在庫アラートボード</h1>
+    <p class="lede">在庫数が閾値を下回った品目を色と印で切り出して表示します。下の「発注アラート用テキスト」は、そのまま生成AIに渡して発注連絡文を書かせるための入力を想定しています。</p>
+  </header>
+
+  <div class="strip" id="strip">
+    <div class="stat"><span class="k">登録品目</span><span class="v" id="s-total">0<small>件</small></span></div>
+    <div class="stat is-alert" id="stat-low"><span class="k">要発注</span><span class="v" id="s-low">0<small>件</small></span></div>
+    <div class="stat"><span class="k">閾値ちょうど</span><span class="v" id="s-near">0<small>件</small></span></div>
+    <div class="stat"><span class="k">本日更新</span><span class="v" id="s-today">0<small>件</small></span></div>
+  </div>
+
+  <div class="cols">
+    <section class="card">
+      <div class="card-head">
+        <h2>在庫一覧</h2>
+        <span class="count" id="count">—</span>
+      </div>
+
+      <div class="toolbar">
+        <input class="search" id="q" type="search" placeholder="商品名・SKU・棚番で絞り込み" aria-label="在庫を絞り込み">
+        <button class="chip" id="only-low" type="button" aria-pressed="false">要発注のみ</button>
+        <button class="ghost" id="reset" type="button">サンプルに戻す</button>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">状態</th>
+              <th scope="col">商品名 / SKU / 棚番</th>
+              <th scope="col" class="num">在庫数</th>
+              <th scope="col" class="num">在庫閾値</th>
+              <th scope="col" class="num">過不足</th>
+              <th scope="col">最終更新日</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="empty" hidden>条件に合う品目がありません。</div>
+
+      <div class="alertbox">
+        <div class="row-actions">
+          <button class="ghost" id="gen" type="button">発注アラート用テキストを作る</button>
+          <button class="ghost" id="copy" type="button" hidden>コピー</button>
+          <span class="count" id="gen-note"></span>
+        </div>
+        <textarea class="alerttext" id="alerttext" hidden readonly aria-label="発注アラート用テキスト"></textarea>
+      </div>
+
+      <div class="alertbox" id="agentbox">
+        <p>気になる品目について、自然な文章で質問できます（例：「ネジAの在庫はどう？傾向も教えて」）。</p>
+        <div class="row-actions">
+          <input class="search" id="agent-q" type="text" placeholder="例: ネジAの在庫はどう？傾向も教えて" aria-label="AIへの質問" style="flex:1 1 260px">
+          <button class="ghost" id="agent-ask" type="button">聞く</button>
+          <span class="count" id="agent-note"></span>
+        </div>
+        <textarea class="alerttext" id="agent-answer" hidden readonly aria-label="AIの回答"></textarea>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="card">
+        <div class="card-head"><h2>新規追加</h2></div>
+        <form id="add-form" novalidate>
+          <div class="field" id="f-name">
+            <label for="i-name">商品名</label>
+            <input id="i-name" name="name" type="text" placeholder="ステンレスボルト M6×20" autocomplete="off">
+            <span class="err" id="e-name"></span>
+          </div>
+
+          <div class="duo">
+            <div class="field" id="f-sku">
+              <label for="i-sku">SKU <span class="opt">任意</span></label>
+              <input id="i-sku" name="sku" type="text" placeholder="FS-0148" autocomplete="off">
+              <span class="err" id="e-sku"></span>
+            </div>
+            <div class="field" id="f-loc">
+              <label for="i-loc">棚番 <span class="opt">任意</span></label>
+              <input id="i-loc" name="loc" type="text" placeholder="A-03" autocomplete="off">
+              <span class="err"></span>
+            </div>
+          </div>
+
+          <div class="duo">
+            <div class="field" id="f-qty">
+              <label for="i-qty">在庫数</label>
+              <input id="i-qty" name="qty" type="number" min="0" step="1" inputmode="numeric" placeholder="0">
+              <span class="err" id="e-qty"></span>
+            </div>
+            <div class="field" id="f-thr">
+              <label for="i-thr">在庫閾値</label>
+              <input id="i-thr" name="thr" type="number" min="0" step="1" inputmode="numeric" placeholder="0">
+              <span class="err" id="e-thr"></span>
+            </div>
+          </div>
+
+          <div class="field" id="f-unit">
+            <label for="i-unit">単位</label>
+            <select id="i-unit" name="unit">
+              <option value="個">個</option>
+              <option value="箱">箱</option>
+              <option value="本">本</option>
+              <option value="枚">枚</option>
+              <option value="kg">kg</option>
+              <option value="L">L</option>
+            </select>
+          </div>
+
+          <p class="hint">最終更新日は追加した日付（本日）が自動で入ります。SKU を空欄にすると連番で採番します。</p>
+          <button class="primary" type="submit">在庫に追加</button>
+          <div class="toast" id="toast" hidden></div>
+        </form>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="note">
+    <span>これは動作確認用のモックです。データはこのブラウザの中だけに保持され、サーバーには送信されません。</span>
+    <code>閾値未満 = 要発注</code>
+    <code>閾値と同数 = 注意</code>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var TODAY = "2026-09-06";
+
+  var SAMPLE = [
+    { id:1, name:"ステンレスボルト M6×20", sku:"FS-0142", loc:"A-03", qty:18,  thr:40,  unit:"個", updated:"2026-09-05" },
+    { id:2, name:"六角ナット M6",          sku:"FS-0143", loc:"A-04", qty:240, thr:120, unit:"個", updated:"2026-09-01" },
+    { id:3, name:"防塵フィルター 300角",    sku:"FL-0071", loc:"C-11", qty:6,   thr:6,   unit:"枚", updated:"2026-09-06" },
+    { id:4, name:"切削油 A-2（20L缶）",     sku:"OL-0018", loc:"D-01", qty:3,   thr:8,   unit:"缶", updated:"2026-08-28" },
+    { id:5, name:"耐熱グローブ L",          sku:"PP-0209", loc:"B-07", qty:14,  thr:10,  unit:"組", updated:"2026-09-04" },
+    { id:6, name:"結束バンド 200mm",        sku:"FS-0155", loc:"A-09", qty:1200,thr:500, unit:"本", updated:"2026-08-21" },
+    { id:7, name:"軸受 6203ZZ",            sku:"BR-0033", loc:"C-02", qty:9,   thr:24,  unit:"個", updated:"2026-09-06" },
+    { id:8, name:"梱包用ストレッチフィルム", sku:"PK-0004", loc:"E-05", qty:32,  thr:20,  unit:"巻", updated:"2026-09-02" }
+  ];
+
+  var KEY = "inv-board-v1";
+  var items = load();
+  var seq = items.reduce(function (m, r) { return Math.max(m, r.id); }, 0);
+
+  function load() {
+    try {
+      var raw = window.localStorage.getItem(KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    } catch (e) { /* storage unavailable — fall back to sample */ }
+    return SAMPLE.map(function (r) { return Object.assign({}, r); });
+  }
+
+  function save() {
+    try { window.localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) { /* ignore */ }
+  }
+
+  function statusOf(r) {
+    if (r.qty < r.thr) return "low";
+    if (r.qty === r.thr) return "near";
+    return "ok";
+  }
+
+  var LABEL = { low:"要発注", near:"注意", ok:"適正" };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var tbody = $("tbody"), empty = $("empty"), countEl = $("count");
+  var qEl = $("q"), onlyLow = $("only-low");
+  var alertText = $("alerttext"), copyBtn = $("copy"), genNote = $("gen-note"), genBtn = $("gen");
+
+  // API Gateway 経由で Lambda(Bedrock) を呼び出すエンドポイント
+  var GEN_API_URL = "https://s3zwwf5syi.execute-api.ap-northeast-1.amazonaws.com/generate-alert";
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c];
+    });
+  }
+
+  function visible() {
+    var q = qEl.value.trim().toLowerCase();
+    var lowOnly = onlyLow.getAttribute("aria-pressed") === "true";
+    return items.filter(function (r) {
+      if (lowOnly && statusOf(r) !== "low") return false;
+      if (!q) return true;
+      return (r.name + " " + r.sku + " " + r.loc).toLowerCase().indexOf(q) > -1;
+    });
+  }
+
+  function render() {
+    var rows = visible();
+
+    tbody.innerHTML = rows.map(function (r) {
+      var st = statusOf(r);
+      var diff = r.qty - r.thr;
+      var pct = r.thr > 0 ? Math.min(100, Math.round((r.qty / r.thr) * 100)) : 100;
+      var diffText = diff < 0 ? "−" + Math.abs(diff) : "+" + diff;
+      return '<tr class="' + st + '" data-id="' + r.id + '">' +
+        '<td><span class="pill ' + st + '">' + LABEL[st] + '</span></td>' +
+        '<td><div class="name">' + esc(r.name) + '</div>' +
+          '<div class="meta"><span>' + esc(r.sku) + '</span><span>棚番 ' + esc(r.loc || "—") + '</span></div></td>' +
+        '<td class="num"><span class="qty">' + r.qty + '<span class="u">' + esc(r.unit) + '</span></span>' +
+          '<span class="adj"><button type="button" data-act="dec" aria-label="' + esc(r.name) + ' の在庫を1減らす">−</button>' +
+          '<button type="button" data-act="inc" aria-label="' + esc(r.name) + ' の在庫を1増やす">+</button></span>' +
+          '<div class="bar"><i style="width:' + pct + '%"></i></div></td>' +
+        '<td class="num"><span class="thr">' + r.thr + '</span></td>' +
+        '<td class="num"><span class="gap' + (diff < 0 ? " short" : "") + '">' + diffText + '</span></td>' +
+        '<td><span class="date">' + esc(r.updated) + '</span></td>' +
+      '</tr>';
+    }).join("");
+
+    empty.hidden = rows.length > 0;
+    countEl.textContent = rows.length + " / " + items.length + " 件を表示";
+
+    var low = items.filter(function (r) { return statusOf(r) === "low"; }).length;
+    var near = items.filter(function (r) { return statusOf(r) === "near"; }).length;
+    var today = items.filter(function (r) { return r.updated === TODAY; }).length;
+    $("s-total").innerHTML = items.length + '<small>件</small>';
+    $("s-low").innerHTML = low + '<small>件</small>';
+    $("s-near").innerHTML = near + '<small>件</small>';
+    $("s-today").innerHTML = today + '<small>件</small>';
+  }
+
+  tbody.addEventListener("click", function (ev) {
+    var btn = ev.target.closest("button[data-act]");
+    if (!btn) return;
+    var id = Number(btn.closest("tr").getAttribute("data-id"));
+    var row = items.filter(function (r) { return r.id === id; })[0];
+    if (!row) return;
+    row.qty = Math.max(0, row.qty + (btn.getAttribute("data-act") === "inc" ? 1 : -1));
+    row.updated = TODAY;
+    save();
+    render();
+  });
+
+  qEl.addEventListener("input", render);
+  onlyLow.addEventListener("click", function () {
+    var on = onlyLow.getAttribute("aria-pressed") === "true";
+    onlyLow.setAttribute("aria-pressed", String(!on));
+    render();
+  });
+  $("reset").addEventListener("click", function () {
+    items = SAMPLE.map(function (r) { return Object.assign({}, r); });
+    seq = items.reduce(function (m, r) { return Math.max(m, r.id); }, 0);
+    save();
+    render();
+  });
+
+  /* ---- 発注アラート用テキスト（Lambda × Bedrock 経由でAI生成） ---- */
+  genBtn.addEventListener("click", function () {
+    var low = items.filter(function (r) { return statusOf(r) === "low"; });
+
+    // 対象0件のときはAPIを呼ばずその場で表示（無駄な呼び出しをしない）
+    if (!low.length) {
+      alertText.value = "【発注アラート】" + TODAY + " 時点\n閾値を下回っている品目はありません。";
+      alertText.hidden = false;
+      copyBtn.hidden = false;
+      genNote.textContent = "対象 0 件";
+      return;
+    }
+
+    var payload = {
+      items: low.map(function (r) {
+        return { name: r.name, qty: r.qty, thr: r.thr, unit: r.unit };
+      })
+    };
+
+    genBtn.disabled = true;
+    copyBtn.hidden = true;
+    alertText.hidden = true;
+    genNote.textContent = "AIが発注アラート文を作成中…";
+
+    fetch(GEN_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        alertText.value = data.alert_text || "（AIから有効な応答がありませんでした）";
+        alertText.hidden = false;
+        copyBtn.hidden = false;
+        genNote.textContent = "対象 " + low.length + " 件（AI生成）";
+      })
+      .catch(function (err) {
+        genNote.textContent = "AI生成に失敗しました（" + err.message + "）。時間をおいて再試行してください。";
+      })
+      .finally(function () {
+        genBtn.disabled = false;
+      });
+  });
+
+  copyBtn.addEventListener("click", function () {
+    alertText.removeAttribute("readonly");
+    alertText.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    alertText.setAttribute("readonly", "readonly");
+    genNote.textContent = ok ? "コピーしました" : "コピーできませんでした。テキストを選択して手動でコピーしてください。";
+  });
+
+  /* ---- AIに質問する（Bedrock Tool Use × inventory-agent 経由） ---- */
+  var agentInput = $("agent-q"), agentBtn = $("agent-ask"), agentNote = $("agent-note"), agentAnswer = $("agent-answer");
+  var AGENT_API_URL = "https://s3zwwf5syi.execute-api.ap-northeast-1.amazonaws.com/agent-query";
+
+  function askAgent() {
+    var question = agentInput.value.trim();
+    if (!question) {
+      agentNote.textContent = "質問を入力してください";
+      return;
+    }
+
+    agentBtn.disabled = true;
+    agentAnswer.hidden = true;
+    agentNote.textContent = "AIが考えています…";
+
+    fetch(AGENT_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: question })
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        agentAnswer.value = data.answer || "（AIから有効な応答がありませんでした）";
+        agentAnswer.hidden = false;
+        agentNote.textContent = "回答完了";
+      })
+      .catch(function (err) {
+        agentNote.textContent = "AI生成に失敗しました（" + err.message + "）。時間をおいて再試行してください。";
+      })
+      .finally(function () {
+        agentBtn.disabled = false;
+      });
+  }
+
+  agentBtn.addEventListener("click", askAgent);
+  agentInput.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") { ev.preventDefault(); askAgent(); }
+  });
+
+  /* ---- 新規追加 ---- */
+  var form = $("add-form"), toast = $("toast");
+
+  function setError(fieldId, errId, msg) {
+    $(fieldId).classList.toggle("invalid", Boolean(msg));
+    if (errId) $(errId).textContent = msg || "";
+  }
+
+  form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var name = $("i-name").value.trim();
+    var sku = $("i-sku").value.trim();
+    var loc = $("i-loc").value.trim();
+    var qtyRaw = $("i-qty").value.trim();
+    var thrRaw = $("i-thr").value.trim();
+    var unit = $("i-unit").value;
+    var bad = false;
+
+    if (!name) { setError("f-name", "e-name", "商品名を入力してください。"); bad = true; }
+    else { setError("f-name", "e-name", ""); }
+
+    var qty = Number(qtyRaw), thr = Number(thrRaw);
+    if (qtyRaw === "" || !isFinite(qty) || qty < 0) { setError("f-qty", "e-qty", "0 以上の数値で入力してください。"); bad = true; }
+    else { setError("f-qty", "e-qty", ""); }
+    if (thrRaw === "" || !isFinite(thr) || thr < 0) { setError("f-thr", "e-thr", "0 以上の数値で入力してください。"); bad = true; }
+    else { setError("f-thr", "e-thr", ""); }
+
+    if (sku && items.some(function (r) { return r.sku.toLowerCase() === sku.toLowerCase(); })) {
+      setError("f-sku", "e-sku", "この SKU はすでに登録されています。"); bad = true;
+    } else { setError("f-sku", "e-sku", ""); }
+
+    if (bad) { toast.hidden = true; return; }
+
+    seq += 1;
+    var rec = {
+      id: seq,
+      name: name,
+      sku: sku || ("NEW-" + String(seq).padStart(4, "0")),
+      loc: loc,
+      qty: Math.round(qty),
+      thr: Math.round(thr),
+      unit: unit,
+      updated: TODAY
+    };
+    items.unshift(rec);
+    save();
+    render();
+
+    form.reset();
+    $("i-name").focus();
+    toast.hidden = false;
+    toast.textContent = statusOf(rec) === "low"
+      ? "「" + rec.name + "」を追加しました（閾値を下回っているため要発注）"
+      : "「" + rec.name + "」を追加しました";
+  });
+
+  render();
+})();
+</script>
